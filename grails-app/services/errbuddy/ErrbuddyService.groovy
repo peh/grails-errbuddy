@@ -14,6 +14,7 @@ class ErrbuddyService implements InitializingBean {
     def grailsApplication
     private String requestPath
     private String performanceBucket
+    private String apiKey
     private def ignoredParams
 
     private AsyncHTTPBuilder httpBuilder
@@ -29,16 +30,8 @@ class ErrbuddyService implements InitializingBean {
         ))
     }
 
-    void fatal(String message) {
-        put(new ErrbuddyLogObject(level: 'FATAL', message: message))
-    }
-
     void error(String message) {
         put(new ErrbuddyLogObject(level: 'ERROR', message: message))
-    }
-
-    void warn(String message) {
-        put(new ErrbuddyLogObject(level: 'WARN', message: message))
     }
 
     void log(String message) {
@@ -50,7 +43,7 @@ class ErrbuddyService implements InitializingBean {
             fillWithRequestParams(putObject)
 
         httpBuilder.request(Method.POST) { req ->
-            uri.path = "$requestPath/${putObject.type.toLowerCase()}"
+            uri.path = "$requestPath/$apiKey/${putObject.bucket}"
             body = putObject.postBody
 
             response.success = { resp ->
@@ -96,13 +89,14 @@ class ErrbuddyService implements InitializingBean {
 
     @Override
     void afterPropertiesSet() throws Exception {
+        apiKey = grailsApplication.config.grails.plugin.errbuddy.apiKey
         requestPath = "${grailsApplication.config.grails.plugin.errbuddy.path}"
         httpBuilder = new AsyncHTTPBuilder(
                 poolSize: grailsApplication.config.grails.plugin.errbuddy.poolSize ?: 4,
                 uri: "$grailsApplication.config.grails.plugin.errbuddy.host",
                 contentType: ContentType.JSON
         )
-        performanceBucket = grailsApplication.config.grails.plugin.errbuddy.buckets.performance
+        performanceBucket = grailsApplication.config.grails.plugin.errbuddy.buckets.performance ?: 'performance'
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
 
 

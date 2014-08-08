@@ -23,7 +23,6 @@ abstract class ErrbuddyPutObject {
 
     Map getPostBody() {
         Map postBody = [
-                bucket           : bucket,
                 time             : time,
                 message          : message,
                 controller       : controllerName,
@@ -32,7 +31,8 @@ abstract class ErrbuddyPutObject {
                 path             : path,
                 hostname         : hostname,
                 requestParameters: requestParameters,
-                sessionParameters: sessionParameters
+                sessionParameters: sessionParameters,
+                type             : type
         ]
         postBody.putAll(postBodyExtension)
         postBody
