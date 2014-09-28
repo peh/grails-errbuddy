@@ -48,3 +48,4 @@ target/
 
 # helpers
 /local/
+grails-errbuddy-*.zip*
