@@ -65,7 +65,7 @@ class ErrbuddyService implements InitializingBean {
             object.path = request.contextPath
             object.sessionParameters = [:]
             request.session.attributeNames.toList().each {
-                if(!it in ignoredParams)
+                if(!(it in ignoredParams))
                     object.sessionParameters.put(it, request.session.getAttribute(it))
             }
             object.requestParameters = [:]
