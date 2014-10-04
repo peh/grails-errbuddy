@@ -25,18 +25,20 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
 
             ErrbuddyPutObject putObject
 
-            if (event.throwableInformation) {
-                def throwable = event.throwableInformation.throwable
+            if (event.throwableInformation || event.level.isGreaterOrEqual(Level.ERROR)) {
                 putObject = new ErrbuddyErrorObject(
                         bucket: exceptionBucket,
-                        message : throwable.message ?: event.message,
-                        level : parseLevel(event.level),
-                        exception: throwable.class.canonicalName,
-                        stackTrace: ["${throwable.class}: $throwable.message"]
-
+                        message: event.message,
+                        level: parseLevel(event.level),
                 )
-                throwable.stackTrace.each {
-                    putObject.stackTrace << it.toString()
+                if (event.throwableInformation) {
+                    def throwable = event.throwableInformation.throwable
+                    putObject.message = putObject.message ?: throwable.message
+                    putObject.exception = throwable.class.canonicalName
+                    putObject.stackTrace = ["${throwable.class}: $throwable.message"]
+                    throwable.stackTrace.each {
+                        putObject.stackTrace << it.toString()
+                    }
                 }
             } else if (!event.throwableInformation && !exceptionsOnly) {
                 putObject = new ErrbuddyLogObject(bucket: logBucket, message: event.message, level: parseLevel(event.level))
