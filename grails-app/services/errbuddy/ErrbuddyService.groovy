@@ -62,7 +62,7 @@ class ErrbuddyService implements InitializingBean {
         if (request) {
             object.controllerName = request.controllerName
             object.actionName = request.actionName
-            object.path = request.contextPath
+            object.path = request.request.requestURL.replace(".dispatch", '')
             object.sessionParameters = [:]
             request.session.attributeNames.toList().each {
                 if(!(it in ignoredParams))
