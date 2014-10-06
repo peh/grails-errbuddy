@@ -17,6 +17,8 @@ class ErrbuddyService implements InitializingBean {
     private String apiKey
     private def ignoredParams
 
+    private boolean enabled = false
+
     private AsyncHTTPBuilder httpBuilder
 
     void measured(String bucketKey = performanceBucket, Closure c) {
@@ -38,21 +40,23 @@ class ErrbuddyService implements InitializingBean {
         put(new ErrbuddyLogObject(level: 'LOG', message: message))
     }
 
-    void put(ErrbuddyPutObject putObject, boolean skipRequestData = false)  {
-        if (!skipRequestData)
-            fillWithRequestParams(putObject)
+    void put(ErrbuddyPutObject putObject, boolean skipRequestData = false) {
+        if (enabled) {
+            if (!skipRequestData)
+                fillWithRequestParams(putObject)
 
-        httpBuilder.request(Method.POST) { req ->
-            uri.path = "$requestPath/$apiKey/${putObject.bucket}"
-            body = putObject.postBody
+            httpBuilder.request(Method.POST) { req ->
+                uri.path = "$requestPath/$apiKey/${putObject.bucket}"
+                body = putObject.postBody
 
-            response.success = { resp ->
-            }
+                response.success = { resp ->
+                }
 
-            response.failure = { resp ->
-                if (Environment.developmentMode)
-                    println("Sending message to errbuddy failed. $resp.statusLine")
+                response.failure = { resp ->
+                    if (Environment.developmentMode)
+                        println("Sending message to errbuddy failed. $resp.statusLine")
 
+                }
             }
         }
     }
@@ -65,19 +69,19 @@ class ErrbuddyService implements InitializingBean {
             object.path = "${request.request.requestURL}".replace(".dispatch", '')
             object.sessionParameters = [:]
             request.session.attributeNames.toList().each {
-                if(!(it in ignoredParams))
+                if (!(it in ignoredParams))
                     object.sessionParameters.put(it, request.session.getAttribute(it))
             }
             object.requestParameters = [:]
             request.parameterMap.each { it ->
-                if(!it.key in ignoredParams)
+                if (!it.key in ignoredParams)
                     object.requestParameters << it
             }
         }
 
     }
 
-    protected def getWebRequest() {
+    protected static def getWebRequest() {
         def request = null
         try {
             request = RequestContextHolder.currentRequestAttributes()
@@ -89,17 +93,18 @@ class ErrbuddyService implements InitializingBean {
 
     @Override
     void afterPropertiesSet() throws Exception {
-        apiKey = grailsApplication.config.grails.plugin.errbuddy.apiKey
-        requestPath = "${grailsApplication.config.grails.plugin.errbuddy.path}"
-        httpBuilder = new AsyncHTTPBuilder(
-                poolSize: grailsApplication.config.grails.plugin.errbuddy.poolSize ?: 4,
-                uri: "$grailsApplication.config.grails.plugin.errbuddy.host",
-                contentType: ContentType.JSON
-        )
-        performanceBucket = grailsApplication.config.grails.plugin.errbuddy.buckets.performance ?: 'performance'
-        ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
-
-
+        enabled = grailsApplication.config.grails.plugin.errbuddy.enabled as boolean
+        if (enabled) {
+            apiKey = grailsApplication.config.grails.plugin.errbuddy.apiKey
+            requestPath = grailsApplication.config.grails.plugin.errbuddy.path ?: "/api/put"
+            httpBuilder = new AsyncHTTPBuilder(
+                    poolSize: grailsApplication.config.grails.plugin.errbuddy.poolSize ?: 4,
+                    uri: grailsApplication.config.grails.plugin.errbuddy.host ?: "http://errbuddy.net",
+                    contentType: ContentType.JSON
+            )
+            performanceBucket = grailsApplication.config.grails.plugin.errbuddy.buckets.performance ?: 'performance'
+            ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
+        }
     }
 
 }

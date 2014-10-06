@@ -1,10 +1,9 @@
 import errbuddy.ErrbuddyLogAppender
-import org.apache.log4j.Level
 import org.apache.log4j.Logger
 
 class ErrbuddyGrailsPlugin {
     // the plugin version
-    def version = "1.0-SNAPSHOT"
+    def version = "1.0.0"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.4 > *"
     // resources that are excluded from plugin packaging
@@ -15,11 +14,11 @@ class ErrbuddyGrailsPlugin {
     // TODO Fill in these fields
     def title = "Grails Errbuddy Plugin" // Headline display name of the plugin
     def author = "Philipp Eschenbach"
-    def authorEmail = "philipp@uberall.com"
-    def description = '''Plugin to send stuff to errbuddy'''
+    def authorEmail = "pesch3@gmail.com"
+    def description = '''Err-buddy Grails client, and LogAppender.'''
 
     // URL to the plugin's documentation
-    def documentation = "http://grails.org/plugin/errbuddy"
+    def documentation = "https://github.com/peh/grails-errbuddy"
 
     // Extra (optional) plugin metadata
 
@@ -32,11 +31,11 @@ class ErrbuddyGrailsPlugin {
     // Any additional developers beyond the author specified above.
 //    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
 
-    // Location of the plugin's issue tracker.
-//    def issueManagement = [ system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN" ]
+//    Location of the plugin's issue tracker.
+    def issueManagement = [ system: "GitHub", url: "https://github.com/peh/grails-errbuddy/issues" ]
 
-    // Online location of the plugin's browseable source code.
-//    def scm = [ url: "http://svn.codehaus.org/grails-plugins/" ]
+//    Online location of the plugin's browseable source code.
+    def scm = [ url: "https://github.com/peh/grails-errbuddy" ]
 
     def doWithWebDescriptor = { xml ->
         // TODO Implement additions to web.xml (optional), this event occurs before
@@ -50,7 +49,8 @@ class ErrbuddyGrailsPlugin {
     }
 
     def doWithApplicationContext = { ctx ->
-        Logger.rootLogger.addAppender(new ErrbuddyLogAppender(service: ctx.errbuddyService, application: application, name: 'errbuddyLogAppender', threshold: org.apache.log4j.Level.WARN))
+        if(application.config.grails.plugin.errbuddy.enabled)
+            Logger.rootLogger.addAppender(new ErrbuddyLogAppender(service: ctx.errbuddyService, application: application, name: 'errbuddyLogAppender', threshold: org.apache.log4j.Level.WARN))
     }
 
     def onChange = { event ->
@@ -60,7 +60,6 @@ class ErrbuddyGrailsPlugin {
     }
 
     def onConfigChange = { event ->
-
 
 
     }
