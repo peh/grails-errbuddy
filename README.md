@@ -16,7 +16,7 @@ compile ":errbuddy:1.0.0"
 
 # Configuration & Usage
 
-If you have not yet signed up on [errbuddy.net](http://errbuddy-net) do so now. The most important part of the Configuration is your ApiKey which you will find in the Application Settings on [errbuddy.net](http://errbuddy-net).
+If you have not yet signed up on [errbuddy.net](http://errbuddy.net) do so now. The most important part of the Configuration is your ApiKey which you will find in the Application Settings on [errbuddy.net](http://errbuddy.net).
 
 This is a basic configuration that is used by the errbuddy app itself
 
