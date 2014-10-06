@@ -1,18 +1,20 @@
 grails-errbuddy
 ===============
 
-Grails Errbuddy plugin
+Grails Errbuddy plugin.
+
+This Plugin provides a LogAppender which automatically sends Log messages to errbuddy. 
+It enriches those with session and request parameters as well as full stacktraces (if provided) so you have the full usage of errbuddy.
 
 # Installation
 
 Add this line to the plugins section of your `BuildConfig.groovy`
 
-
 ```
 compile ":errbuddy:1.0.0"
 ```
 
-# Configuration
+# Configuration & Usage
 
 If you have not yet signed up on [errbuddy.net](http://errbuddy-net) do so now. The most important part of the Configuration is your ApiKey which you will find in the Application Settings on [errbuddy.net](http://errbuddy-net).
 
@@ -38,7 +40,7 @@ That's it.
 
 
 # ToDo
-* update Documentation to also cover custom messag sending
+* update Documentation to also cover custom message sending
 * add performance tracking
 
 
