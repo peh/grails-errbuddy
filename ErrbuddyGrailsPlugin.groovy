@@ -5,7 +5,7 @@ import errbuddy.ErrbuddyLogAppender
 
 class ErrbuddyGrailsPlugin {
     def version = "1.0.0"
-    def grailsVersion = "2.4 > *"
+    def grailsVersion = "2.0 > *"
     def title = "Grails err-buddy Plugin"
     def author = "Philipp Eschenbach"
     def authorEmail = "pesch3@gmail.com"
