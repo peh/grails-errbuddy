@@ -35,44 +35,44 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
                     def throwable = event.throwableInformation.throwable
                     putObject.message = putObject.message ?: throwable.message
                     putObject.exception = throwable.class.canonicalName
-                    putObject.stackTrace = ["${throwable.class}: $throwable.message"]
-                    throwable.stackTrace.each {
-                        putObject.stackTrace << it.toString()
-                    }
+                    putObject.stackTrace = new ArrayList(throwable.stackTrace.length + 1)
+                    putObject.stackTrace << "${throwable.class}: $throwable.message"
+                    throwable.stackTrace.each { putObject.stackTrace << it.toString() }
                 }
             } else if (!event.throwableInformation && !exceptionsOnly) {
                 putObject = new ErrbuddyLogObject(bucket: logBucket, message: event.message, level: parseLevel(event.level))
             }
 
-            if (putObject)
+            if (putObject) {
                 service.put(putObject)
+            }
         } catch (Throwable e) {
-            if (Environment.developmentMode)
+            if (Environment.developmentMode) {
                 println(e.message)
+            }
         }
     }
 
-    @Override
     void close() {
 
     }
 
-    @Override
     boolean requiresLayout() {
         return false
     }
 
     private void init() {
+        def conf = application.config.grails.plugin.errbuddy
         Level level = Level.ERROR
         try {
-            level = Level.toLevel(application.config.grails.plugin.errbuddy.threshold.toString())
-        } catch (Exception e) {
-            println("$application.config.grails.plugin.errbuddy.threshold can not be parsed to a logging level, please review your configuration, defaulting to ERROR")
+            level = Level.toLevel(conf.threshold.toString())
+        } catch (e) {
+            println("$conf.threshold can not be parsed to a logging level, please review your configuration, defaulting to ERROR")
         }
         setThreshold(level)
-        exceptionBucket = application.config.grails.plugin.errbuddy.buckets.error ?: 'error'
-        logBucket = application.config.grails.plugin.errbuddy.buckets.log ?: 'log'
-        exceptionsOnly = application.config.grails.plugin.errbuddy.exceptionsOnly == null ? true : application.config.grails.plugin.errbuddy.exceptionsOnly as boolean
+        exceptionBucket = conf.buckets.error ?: 'error'
+        logBucket = conf.buckets.log ?: 'log'
+        exceptionsOnly = conf.exceptionsOnly == null ? true : conf.exceptionsOnly as boolean
         if (!exceptionsOnly && !logBucket) {
             println("ErrbuddyLogAppender.init() ignoring exceptionsOnly=false since no logBucket is defined")
             exceptionsOnly = true
@@ -80,7 +80,6 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
         if (exceptionBucket) {
             initialized = true
         }
-
     }
 
     private static String parseLevel(Level level) {
@@ -91,5 +90,4 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
             default: return 'LOG'
         }
     }
-
 }
