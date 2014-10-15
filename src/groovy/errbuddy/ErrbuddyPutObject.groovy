@@ -3,7 +3,7 @@ package errbuddy
 abstract class ErrbuddyPutObject {
 
     long time
-    String bucket
+    Type type
     String message
     String hostname
 
@@ -34,5 +34,11 @@ abstract class ErrbuddyPutObject {
                 sessionParameters: sessionParameters,
                 type             : type
         ] + postBodyExtension
+    }
+
+    public static enum Type {
+        ERROR,
+        LOG,
+        PERFORMANCE
     }
 }

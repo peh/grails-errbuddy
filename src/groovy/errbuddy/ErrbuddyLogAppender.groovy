@@ -11,8 +11,6 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
     ErrbuddyService service
     boolean initialized = false
     boolean exceptionsOnly
-    private String exceptionBucket
-    private String logBucket
 
     @Override
     protected void append(LoggingEvent event) {
@@ -27,7 +25,7 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
 
             if (event.throwableInformation || event.level.isGreaterOrEqual(Level.ERROR)) {
                 putObject = new ErrbuddyErrorObject(
-                        bucket: exceptionBucket,
+                        type: ErrbuddyPutObject.Type.ERROR,
                         message: event.message,
                         level: parseLevel(event.level),
                 )
@@ -40,7 +38,7 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
                     throwable.stackTrace.each { putObject.stackTrace << it.toString() }
                 }
             } else if (!event.throwableInformation && !exceptionsOnly) {
-                putObject = new ErrbuddyLogObject(bucket: logBucket, message: event.message, level: parseLevel(event.level))
+                putObject = new ErrbuddyLogObject(type: ErrbuddyPutObject.Type.LOG, message: event.message, level: parseLevel(event.level))
             }
 
             if (putObject) {
@@ -70,16 +68,8 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
             println("$conf.threshold can not be parsed to a logging level, please review your configuration, defaulting to ERROR")
         }
         setThreshold(level)
-        exceptionBucket = conf.buckets.error ?: 'error'
-        logBucket = conf.buckets.log ?: 'log'
-        exceptionsOnly = conf.exceptionsOnly == null ? true : conf.exceptionsOnly as boolean
-        if (!exceptionsOnly && !logBucket) {
-            println("ErrbuddyLogAppender.init() ignoring exceptionsOnly=false since no logBucket is defined")
-            exceptionsOnly = true
-        }
-        if (exceptionBucket) {
-            initialized = true
-        }
+        exceptionsOnly = application.config.grails.plugin.errbuddy.exceptionsOnly == null ? true : application.config.grails.plugin.errbuddy.exceptionsOnly as boolean
+
     }
 
     private static String parseLevel(Level level) {

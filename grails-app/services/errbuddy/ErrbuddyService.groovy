@@ -15,18 +15,17 @@ class ErrbuddyService implements InitializingBean {
     def grailsApplication
 
     private String requestPath
-    private String performanceBucket
     private String apiKey
     private ignoredParams
     private boolean enabled = false
     private AsyncHTTPBuilder httpBuilder
 
-    void measured(String bucketKey = performanceBucket, Closure c) {
+    void measured(Closure c) {
         long start = System.currentTimeMillis()
         c.call()
         long end = System.currentTimeMillis()
         put(new ErrbuddyPerfomanceObject(
-                bucket: bucketKey,
+                type: ErrbuddyPutObject.Type.PERFORMANCE,
                 start: start,
                 end: end
         ))
@@ -50,7 +49,8 @@ class ErrbuddyService implements InitializingBean {
         }
 
         httpBuilder.request(Method.POST) { req ->
-            uri.path = "$requestPath/$apiKey/${putObject.bucket}"
+            uri.path = "$requestPath"
+            headers.key = apiKey
             body = putObject.postBody
 
             response.success = { resp ->
@@ -110,7 +110,8 @@ class ErrbuddyService implements InitializingBean {
                 uri: conf.host ?: "http://errbuddy.net",
                 contentType: ContentType.JSON
         )
-        performanceBucket = conf.buckets.performance ?: 'performance'
-        ignoredParams = conf.params.exclude
+        ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
+
+
     }
 }
