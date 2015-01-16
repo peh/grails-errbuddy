@@ -14,7 +14,8 @@ class ErrbuddyService implements InitializingBean {
 
     def grailsApplication
 
-    private String requestPath
+    private static final String ERROR_PATH = '/api/error'
+    private static final String DEPLOY_PATH = '/api/deployment'
     private String apiKey
     private ignoredParams
     private boolean enabled = false
@@ -49,7 +50,7 @@ class ErrbuddyService implements InitializingBean {
         }
 
         httpBuilder.request(Method.POST) { req ->
-            uri.path = "$requestPath"
+            uri.path = ERROR_PATH
             headers.key = apiKey
             body = putObject.postBody
 
@@ -59,6 +60,27 @@ class ErrbuddyService implements InitializingBean {
             response.failure = { resp ->
                 if (Environment.developmentMode) {
                     println("Sending message to errbuddy failed. $resp.statusLine")
+                }
+            }
+        }
+    }
+
+    void postDeployment(String version = null, String hostname = null) {
+        if(!version)
+            version = grailsApplication.metadata['app.version'].toString()
+        if(!hostname)
+
+        httpBuilder.request(Method.POST) { req ->
+            uri.path = DEPLOY_PATH
+            headers.key = apiKey
+            body = [hostname: hostname, version: version]
+
+            response.success = { resp ->
+            }
+
+            response.failure = { resp ->
+                if (Environment.developmentMode) {
+                    log.error("Could not send deployment notice to errbuddy: $resp.status")
                 }
             }
         }
@@ -104,14 +126,11 @@ class ErrbuddyService implements InitializingBean {
         }
 
         apiKey = conf.apiKey
-        requestPath = conf.path ?: "/api/put"
         httpBuilder = new AsyncHTTPBuilder(
                 poolSize: conf.poolSize ?: 4,
                 uri: conf.host ?: "http://errbuddy.net",
                 contentType: ContentType.JSON
         )
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
-
-
     }
 }
