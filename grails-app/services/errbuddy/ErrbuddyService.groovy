@@ -4,7 +4,6 @@ import grails.util.Environment
 import groovyx.net.http.AsyncHTTPBuilder
 import groovyx.net.http.ContentType
 import groovyx.net.http.Method
-
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.web.context.request.RequestContextHolder
 
@@ -20,6 +19,9 @@ class ErrbuddyService implements InitializingBean {
     private ignoredParams
     private boolean enabled = false
     private AsyncHTTPBuilder httpBuilder
+    String hostname = null
+    private boolean addHostname = false
+    private String hostnameSuffix = ''
 
     void measured(Closure c) {
         long start = System.currentTimeMillis()
@@ -66,9 +68,10 @@ class ErrbuddyService implements InitializingBean {
     }
 
     void postDeployment(String version = null, String hostname = null) {
-        if(!version)
+        if (!version)
             version = grailsApplication.metadata['app.version'].toString()
-        if(!hostname)
+        if (!hostname)
+            hostname = this.hostname
 
         httpBuilder.request(Method.POST) { req ->
             uri.path = DEPLOY_PATH
@@ -107,6 +110,7 @@ class ErrbuddyService implements InitializingBean {
                 object.requestParameters << it
             }
         }
+        object.hostname = hostname
     }
 
     protected static getWebRequest() {
@@ -132,5 +136,10 @@ class ErrbuddyService implements InitializingBean {
                 contentType: ContentType.JSON
         )
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
+
+        if(grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
+            hostname = "${InetAddress.getLocalHost().getHostName()}$hostnameSuffix"
+        else if(grailsApplication.config.grails.plugin.errbuddy.hostname.name)
+            hostname = "${grailsApplication.config.grails.plugin.errbuddy.hostname.name}"
     }
 }
