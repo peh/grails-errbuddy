@@ -132,7 +132,7 @@ class ErrbuddyService implements InitializingBean {
         apiKey = conf.apiKey
         httpBuilder = new AsyncHTTPBuilder(
                 poolSize: conf.poolSize ?: 4,
-                uri: conf.host ?: "http://errbuddy.net",
+                uri: conf.host ?: "https://errbuddy.net",
                 contentType: ContentType.JSON
         )
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
