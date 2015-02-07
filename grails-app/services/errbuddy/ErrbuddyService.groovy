@@ -4,9 +4,10 @@ import grails.util.Environment
 import groovyx.net.http.AsyncHTTPBuilder
 import groovyx.net.http.ContentType
 import groovyx.net.http.Method
+import org.springframework.beans.factory.InitializingBean
 import org.springframework.web.context.request.RequestContextHolder
 
-class ErrbuddyService {
+class ErrbuddyService implements InitializingBean {
 
     static transactional = false
 
@@ -21,7 +22,6 @@ class ErrbuddyService {
     String hostname = null
     private boolean addHostname = false
     private String hostnameSuffix = ''
-    private boolean initiated = false
 
     void measured(Closure c) {
         long start = System.currentTimeMillis()
@@ -43,7 +43,6 @@ class ErrbuddyService {
     }
 
     void put(ErrbuddyPutObject putObject, boolean skipRequestData = false) {
-        init()
         if (!enabled) {
             return
         }
@@ -69,7 +68,6 @@ class ErrbuddyService {
     }
 
     void postDeployment(String version = null, String hostname = null) {
-        init()
         if (!version)
             version = grailsApplication.metadata['app.version'].toString()
         if (!hostname)
@@ -123,9 +121,8 @@ class ErrbuddyService {
         }
     }
 
-    void init() {
-        if (initiated)
-            return
+    void afterPropertiesSet() {
+
         def conf = grailsApplication.config.grails.plugin.errbuddy
         enabled = conf.enabled as boolean
         if (!enabled) {
@@ -140,11 +137,9 @@ class ErrbuddyService {
         )
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
 
-        if (grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
+        if(grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
             hostname = "${InetAddress.getLocalHost().getHostName()}$hostnameSuffix"
-        else if (grailsApplication.config.grails.plugin.errbuddy.hostname.name)
+        else if(grailsApplication.config.grails.plugin.errbuddy.hostname.name)
             hostname = "${grailsApplication.config.grails.plugin.errbuddy.hostname.name}"
-        initiated = true
     }
-
 }
