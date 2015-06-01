@@ -106,7 +106,7 @@ class ErrbuddyService implements InitializingBean {
         }
         object.requestParameters = [:]
         request.parameterMap.each { it ->
-            if (!it.key in ignoredParams) {
+            if (!(it.key in ignoredParams)) {
                 object.requestParameters << it
             }
         }
@@ -136,8 +136,8 @@ class ErrbuddyService implements InitializingBean {
                 contentType: ContentType.JSON
         )
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
-
-        if(grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
+        hostnameSuffix = grailsApplication.config.grails.plugin.errbuddy.hostname.resolve.suffix
+        if (grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
             hostname = "${InetAddress.getLocalHost().getHostName()}$hostnameSuffix"
         else if(grailsApplication.config.grails.plugin.errbuddy.hostname.name)
             hostname = "${grailsApplication.config.grails.plugin.errbuddy.hostname.name}"
