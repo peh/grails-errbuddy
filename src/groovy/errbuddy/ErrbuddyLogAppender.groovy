@@ -1,6 +1,7 @@
 package errbuddy
 
 import grails.util.Environment
+import org.apache.commons.lang.RandomStringUtils
 import org.apache.log4j.AppenderSkeleton
 import org.apache.log4j.Level
 import org.apache.log4j.spi.LoggingEvent
@@ -24,13 +25,16 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
             ErrbuddyPutObject putObject
 
             if (event.throwableInformation || event.level.isGreaterOrEqual(Level.ERROR)) {
+
                 putObject = new ErrbuddyErrorObject(
                         type: ErrbuddyPutObject.Type.ERROR,
                         message: event.message,
                         level: parseLevel(event.level),
+                        identifier: RandomStringUtils.randomAlphanumeric(32)
                 )
                 if (event.throwableInformation) {
-                    def throwable = event.throwableInformation.throwable
+                    Throwable throwable = event.throwableInformation.throwable
+                    throwable.metaClass.errbuddyIdentifier = putObject.identifier
                     putObject.message = putObject.message ?: throwable.message
                     putObject.exception = throwable.class.canonicalName
                     putObject.stackTrace = new ArrayList(throwable.stackTrace.length + 1)

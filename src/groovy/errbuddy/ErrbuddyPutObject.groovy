@@ -11,6 +11,7 @@ abstract class ErrbuddyPutObject {
     String controllerName
     String serviceName
     String path
+    String identifier
 
     def request
 
@@ -23,6 +24,7 @@ abstract class ErrbuddyPutObject {
 
     Map getPostBody() {
         [
+                identifier       : identifier,
                 time             : time,
                 message          : message,
                 controller       : controllerName,
