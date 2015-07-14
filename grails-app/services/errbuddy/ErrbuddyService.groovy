@@ -136,7 +136,7 @@ class ErrbuddyService implements InitializingBean {
                 contentType: ContentType.JSON
         )
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
-        hostnameSuffix = grailsApplication.config.grails.plugin.errbuddy.hostname.resolve.suffix
+        hostnameSuffix = grailsApplication.config.grails.plugin.errbuddy.hostname.suffix
         if (grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
             hostname = "${InetAddress.getLocalHost().getHostName()}$hostnameSuffix"
         else if(grailsApplication.config.grails.plugin.errbuddy.hostname.name)
