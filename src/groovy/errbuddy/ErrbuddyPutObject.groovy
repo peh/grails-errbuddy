@@ -34,7 +34,7 @@ abstract class ErrbuddyPutObject {
                 hostname         : hostname,
                 requestParameters: requestParameters,
                 sessionParameters: sessionParameters,
-                type             : type
+                type             : type.name()
         ] + postBodyExtension
     }
 
