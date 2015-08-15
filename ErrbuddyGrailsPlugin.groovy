@@ -4,7 +4,7 @@ import org.apache.log4j.Logger
 import errbuddy.ErrbuddyLogAppender
 
 class ErrbuddyGrailsPlugin {
-    def version = "1.3.1"
+    def version = "1.3.2"
     def grailsVersion = "2.0 > *"
     def title = "Grails err-buddy Plugin"
     def author = "Philipp Eschenbach"

@@ -79,6 +79,7 @@ class ErrbuddyService implements InitializingBean {
             body = [hostname: hostname, version: version]
 
             response.success = { resp ->
+                true
             }
 
             response.failure = { resp ->

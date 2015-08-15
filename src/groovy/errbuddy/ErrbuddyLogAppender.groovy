@@ -49,8 +49,8 @@ class ErrbuddyLogAppender extends AppenderSkeleton {
                 service.put(putObject)
             }
         } catch (Throwable e) {
-            if (Environment.developmentMode) {
-                println(e.message)
+            if (Environment.developmentMode || application.config.grails.plugin.errbuddy.throwError) {
+                e.printStackTrace()
             }
         }
     }
