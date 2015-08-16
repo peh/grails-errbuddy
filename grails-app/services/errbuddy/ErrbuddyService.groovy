@@ -3,14 +3,15 @@ package errbuddy
 import grails.converters.JSON
 import grails.util.Environment
 import org.apache.http.Header
-
+import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.CloseableHttpClient
+import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.impl.client.HttpClients
+import org.apache.http.impl.client.LaxRedirectStrategy
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.message.BasicHeader
-import org.apache.http.util.EntityUtils
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.web.context.request.RequestContextHolder
 
@@ -27,14 +28,16 @@ class ErrbuddyService implements InitializingBean {
     private static final String DEFAULT_ERRBUDDY_URL = "https://errbuddy.net"
     private static final String AUTH_KEY_HEADER_NAME = "key"
     private static final Header CONTENT_TYPE_HEADER = new BasicHeader('Content-Type', 'application/json')
+    private static final int MAX_WAIT_TIME = 10000
     private static final Charset CHARSET = Charset.forName("UTF-8")
+    private HttpClientBuilder clientBuilder
     private String apiKey
     private ignoredParams
     private boolean enabled = false
-    private PoolingHttpClientConnectionManager connectionManager
     String hostname = null
     private boolean addHostname = false
     private String hostnameSuffix = ''
+
 
     void measured(Closure c) {
         long start = System.currentTimeMillis()
@@ -64,22 +67,7 @@ class ErrbuddyService implements InitializingBean {
             fillWithRequestParams(putObject)
         }
 
-        def client = HttpClients.createDefault()
-        try {
-            def response = client.execute(buildPost(ERROR_PATH, putObject.postBody))
-            if (response.statusLine.statusCode == 200) {
-                return true
-            } else {
-                if (!Environment.warDeployed) {
-                    String resp = EntityUtils.toString(response.entity)
-                    println("Sending message to errbuddy failed. $response.statusLine.statusCode -> $resp")
-                    return false
-                }
-            }
-        } finally {
-            client.close()
-        }
-        return false
+        new SendThread(buildPost(ERROR_PATH, putObject.postBody), httpClient).start()
     }
 
     void postDeployment(String version = null, String hostname = null) {
@@ -92,26 +80,12 @@ class ErrbuddyService implements InitializingBean {
         if (!hostname)
             hostname = this.hostname
 
-        def client = HttpClients.createDefault()
-        try {
-            def response = client.execute(buildPost(DEPLOY_PATH, [hostname: hostname, version: version]))
-            if (response.statusLine.statusCode == 200) {
-                true
-            } else {
-                if (Environment.developmentMode) {
-                    println("Could not send deployment notice to errbuddy. $response.statusLine.statusCode")
-                }
-            }
-        } finally {
-            client.close()
-        }
+        new SendThread(buildPost(DEPLOY_PATH, [hostname: hostname, version: version]), httpClient).start()
     }
 
     HttpPost buildPost(String target, Map body) {
         HttpPost post = new HttpPost("$errbuddyUrl$target")
         post.setEntity(new StringEntity((body as JSON).toString(), CHARSET))
-        post.addHeader(AUTH_KEY_HEADER_NAME, apiKey)
-        post.addHeader(CONTENT_TYPE_HEADER)
         post
     }
 
@@ -147,12 +121,16 @@ class ErrbuddyService implements InitializingBean {
         }
     }
 
-    private CloseableHttpClient getHttpClient() {
-        HttpClients.custom().setConnectionManager(connectionManager).build()
-    }
-
     private getErrbuddyUrl() {
         grailsApplication.config.grails.plugin.errbuddy.host ?: DEFAULT_ERRBUDDY_URL
+    }
+
+    private CloseableHttpClient getHttpClient(){
+        if(!clientBuilder) {
+            RequestConfig.Builder requestBuilder = RequestConfig.custom().setConnectTimeout(MAX_WAIT_TIME).setConnectionRequestTimeout(MAX_WAIT_TIME);
+            clientBuilder = HttpClients.custom().setDefaultHeaders([CONTENT_TYPE_HEADER, new BasicHeader(AUTH_KEY_HEADER_NAME, apiKey)]).setRedirectStrategy(new LaxRedirectStrategy()).setDefaultRequestConfig(requestBuilder.build())
+        }
+        clientBuilder.build()
     }
 
     void afterPropertiesSet() {
@@ -164,12 +142,42 @@ class ErrbuddyService implements InitializingBean {
         }
 
         apiKey = conf.apiKey
-        connectionManager = new PoolingHttpClientConnectionManager()
         ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
         hostnameSuffix = grailsApplication.config.grails.plugin.errbuddy.hostname.suffix
         if (grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
             hostname = "${InetAddress.getLocalHost().getHostName()}$hostnameSuffix"
         else if (grailsApplication.config.grails.plugin.errbuddy.hostname.name)
             hostname = "${grailsApplication.config.grails.plugin.errbuddy.hostname.name}"
+    }
+
+    private class SendThread extends Thread {
+
+        private HttpPost httpPost
+        private CloseableHttpClient client
+
+        public SendThread(HttpPost httpPost, CloseableHttpClient client){
+            this.httpPost = httpPost
+            this.client = client
+        }
+
+        @Override
+        void run() {
+            try {
+                def response = client.execute(httpPost)
+                if (response.statusLine.statusCode == 200) {
+                    true
+                } else {
+                    if (Environment.developmentMode) {
+                        println("Sending Post failed. $response.statusLine.statusCode")
+                    }
+                }
+            } catch(Throwable t) {
+                if (Environment.developmentMode) {
+                    println("Sending Post failed. $t.message")
+                }
+            } finally {
+                client.close()
+            }
+        }
     }
 }
