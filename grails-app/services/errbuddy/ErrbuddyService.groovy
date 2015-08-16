@@ -83,6 +83,10 @@ class ErrbuddyService implements InitializingBean {
     }
 
     void postDeployment(String version = null, String hostname = null) {
+        if (!enabled) {
+            return
+        }
+
         if (!version)
             version = grailsApplication.metadata['app.version'].toString()
         if (!hostname)
