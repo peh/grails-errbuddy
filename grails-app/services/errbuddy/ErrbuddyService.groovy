@@ -1,6 +1,6 @@
 package errbuddy
 
-import grails.converters.JSON
+import com.google.gson.GsonBuilder
 import grails.util.Environment
 import org.apache.http.Header
 import org.apache.http.client.config.RequestConfig
@@ -10,7 +10,6 @@ import org.apache.http.impl.client.CloseableHttpClient
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.impl.client.LaxRedirectStrategy
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager
 import org.apache.http.message.BasicHeader
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.web.context.request.RequestContextHolder
@@ -30,6 +29,7 @@ class ErrbuddyService implements InitializingBean {
     private static final Header CONTENT_TYPE_HEADER = new BasicHeader('Content-Type', 'application/json')
     private static final int MAX_WAIT_TIME = 10000
     private static final Charset CHARSET = Charset.forName("UTF-8")
+    private static final GsonBuilder JSON_BUILDER = new GsonBuilder()
     private HttpClientBuilder clientBuilder
     private String apiKey
     private ignoredParams
@@ -85,7 +85,7 @@ class ErrbuddyService implements InitializingBean {
 
     HttpPost buildPost(String target, Map body) {
         HttpPost post = new HttpPost("$errbuddyUrl$target")
-        post.setEntity(new StringEntity((body as JSON).toString(), CHARSET))
+        post.setEntity(new StringEntity(JSON_BUILDER.create().toJson(body), CHARSET))
         post
     }
 
@@ -125,8 +125,8 @@ class ErrbuddyService implements InitializingBean {
         grailsApplication.config.grails.plugin.errbuddy.host ?: DEFAULT_ERRBUDDY_URL
     }
 
-    private CloseableHttpClient getHttpClient(){
-        if(!clientBuilder) {
+    private CloseableHttpClient getHttpClient() {
+        if (!clientBuilder) {
             RequestConfig.Builder requestBuilder = RequestConfig.custom().setConnectTimeout(MAX_WAIT_TIME).setConnectionRequestTimeout(MAX_WAIT_TIME);
             clientBuilder = HttpClients.custom().setDefaultHeaders([CONTENT_TYPE_HEADER, new BasicHeader(AUTH_KEY_HEADER_NAME, apiKey)]).setRedirectStrategy(new LaxRedirectStrategy()).setDefaultRequestConfig(requestBuilder.build())
         }
@@ -155,7 +155,7 @@ class ErrbuddyService implements InitializingBean {
         private HttpPost httpPost
         private CloseableHttpClient client
 
-        public SendThread(HttpPost httpPost, CloseableHttpClient client){
+        public SendThread(HttpPost httpPost, CloseableHttpClient client) {
             this.httpPost = httpPost
             this.client = client
         }
@@ -171,7 +171,7 @@ class ErrbuddyService implements InitializingBean {
                         println("Sending Post failed. $response.statusLine.statusCode")
                     }
                 }
-            } catch(Throwable t) {
+            } catch (Throwable t) {
                 if (Environment.developmentMode) {
                     println("Sending Post failed. $t.message")
                 }
