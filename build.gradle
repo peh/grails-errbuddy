@@ -37,9 +37,20 @@ dependencyManagement {
 }
 
 dependencies {
-    compile "org.springframework.boot:spring-boot-starter-logging"
-    compile "org.springframework.boot:spring-boot-autoconfigure"
-    compile "org.grails:grails-core"
+    profile "org.grails.profiles:plugin:3.1.4"
+
+    provided 'org.springframework.boot:spring-boot-starter-logging'
+    provided "org.springframework.boot:spring-boot-starter-actuator"
+    provided "org.springframework.boot:spring-boot-autoconfigure"
+    provided "org.springframework.boot:spring-boot-starter-tomcat"
+
+    provided "org.grails:grails-web-boot"
+    provided "org.grails:grails-dependencies"
+    provided 'javax.servlet:javax.servlet-api:3.1.0'
+    provided "org.grails:grails-plugin-services"
+    provided "org.grails:grails-plugin-domain-class"
+    provided "org.grails:grails-dependencies"
+
     console "org.grails:grails-console"
 
     compile 'org.apache.httpcomponents:httpclient:4.5'
@@ -47,9 +58,6 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.4'
     compile 'com.google.code.gson:gson:2.6.2'
 
-    profile "org.grails.profiles:plugin:3.1.4"
-    provided "org.grails:grails-plugin-services"
-    provided "org.grails:grails-plugin-domain-class"
     testCompile "org.grails:grails-plugin-testing"
 }
 
@@ -57,7 +65,9 @@ task wrapper(type: Wrapper) {
     gradleVersion = gradleWrapperVersion
 }
 grailsPublish {
-    // TODO: Provide values here
+    user = System.getenv("BINTRAY_USER") ?: project.hasProperty("bintrayUser") ? project.bintrayUser : ''
+    key = System.getenv("BINTRAY_KEY") ?: project.hasProperty("bintrayKey") ? project.bintrayKey : ''
+    userOrg = 'errbuddy'
     githubSlug = 'peh/grails-errbuddy'
     license {
         name = 'Apache-2.0'

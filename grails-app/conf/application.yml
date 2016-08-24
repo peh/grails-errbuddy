@@ -5,13 +5,17 @@ grails:
     spring:
         transactionManagement:
             proxies: false
+    plugin:
+        errbuddy:
+          enabled: true
+          apiKey: GARBAGE
+          exceptionsOnly: false
 info:
     app:
         name: '@info.app.name@'
         version: '@info.app.version@'
         grailsVersion: '@info.app.grailsVersion@'
 spring:
-
     groovy:
         template:
             check-template-location: false
