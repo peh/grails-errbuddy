@@ -61,7 +61,7 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
                         identifier: RandomStringUtils.randomAlphanumeric(32)
                 )
 
-                if (eventObject.throwableInformation) {
+                if (eventObject.hasProperty('throwableInformation') && eventObject.throwableInformation) {
                     Throwable throwable = eventObject.throwableInformation.throwable
                     throwable.metaClass.errbuddyIdentifier = putObject.identifier
                     putObject.message = putObject.message ?: throwable.message
