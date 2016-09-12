@@ -1,4 +1,4 @@
-package errbuddy
+package grails.plugins.errbuddy
 
 import com.google.gson.GsonBuilder
 import grails.util.Environment

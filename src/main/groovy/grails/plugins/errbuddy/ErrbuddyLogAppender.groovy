@@ -1,10 +1,12 @@
-package errbuddy
+package grails.plugins.errbuddy
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.filter.ThresholdFilter
 import ch.qos.logback.core.AppenderBase
 import grails.core.GrailsApplication
 import grails.util.Environment
+import grails.util.Holders
 import org.apache.commons.lang3.RandomStringUtils
 import org.slf4j.LoggerFactory
 
@@ -15,6 +17,19 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
 
     boolean enabled = false
     boolean exceptionsOnly
+    private static ErrbuddyLogAppender INSTANCE
+
+    private ErrbuddyLogAppender(GrailsApplication grailsApplication) {
+        this.grailsApplication = grailsApplication
+        this.errbuddyService = grailsApplication.mainContext.getBean("errbuddyService")
+    }
+
+    static ErrbuddyLogAppender getInstance() {
+        if (!INSTANCE) {
+            INSTANCE = new ErrbuddyLogAppender(Holders.grailsApplication)
+        }
+        INSTANCE
+    }
 
     private static String parseLevel(Level level) {
         switch (level) {
@@ -32,7 +47,9 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
             } catch (e) {
                 println("$config.threshold can not be parsed to a logging level, please review your configuration, defaulting to ERROR")
             }
-            //        setThreshold(level)
+            def errorFilter = new ThresholdFilter(level: level)
+            errorFilter.start()
+            this.addFilter(errorFilter)
             exceptionsOnly = config.errbuddy.exceptionsOnly == null ? true : config.errbuddy.exceptionsOnly as boolean
             Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
             this.context = LoggerFactory.getILoggerFactory()
