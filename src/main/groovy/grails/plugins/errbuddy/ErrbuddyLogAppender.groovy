@@ -43,7 +43,7 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
         if (!enabled) {
             Level level = Level.ERROR
             try {
-                level = Level.toLevel(conf.threshold.toString())
+                level = Level.toLevel(config.threshold.toString())
             } catch (e) {
                 println("$config.threshold can not be parsed to a logging level, please review your configuration, defaulting to ERROR")
             }
@@ -60,7 +60,7 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
     }
 
     def getConfig() {
-        grailsApplication.config.grails.plugins.errbuddy
+        grailsApplication.config.grails.plugin.errbuddy
     }
 
     @Override
