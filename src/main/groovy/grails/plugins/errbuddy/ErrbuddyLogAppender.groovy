@@ -16,7 +16,6 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
     ErrbuddyService errbuddyService
 
     boolean enabled = false
-    boolean exceptionsOnly
     private static ErrbuddyLogAppender INSTANCE
 
     private ErrbuddyLogAppender(GrailsApplication grailsApplication) {
@@ -42,15 +41,16 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
     void enable() {
         if (!enabled) {
             Level level = Level.ERROR
-            try {
-                level = Level.toLevel(config.threshold.toString())
-            } catch (e) {
-                println("$config.threshold can not be parsed to a logging level, please review your configuration, defaulting to ERROR")
+            if (config.threshold.toString()) {
+                try {
+                    level = Level.toLevel(config.threshold.toString())
+                } catch (e) {
+                    println("$config.threshold can not be parsed to a logging level, please review your configuration, defaulting to ERROR")
+                }
             }
             def errorFilter = new ThresholdFilter(level: level)
             errorFilter.start()
             this.addFilter(errorFilter)
-            exceptionsOnly = config.errbuddy.exceptionsOnly == null ? true : config.errbuddy.exceptionsOnly as boolean
             Logger rootLogger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
             this.context = LoggerFactory.getILoggerFactory()
             this.start()
@@ -78,17 +78,17 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
                         identifier: RandomStringUtils.randomAlphanumeric(32)
                 )
 
-                if (eventObject.hasProperty('throwableInformation') && eventObject.throwableInformation) {
-                    Throwable throwable = eventObject.throwableInformation.throwable
+                if (eventObject.throwableProxy) {
+                    Throwable throwable = eventObject.throwableProxy.throwable
                     throwable.metaClass.errbuddyIdentifier = putObject.identifier
                     putObject.message = putObject.message ?: throwable.message
                     putObject.exception = throwable.class.canonicalName
                     putObject.stackTrace = new ArrayList(throwable.stackTrace.length + 1)
-                    putObject.stackTrace << "${throwable.class}: $throwable.message"
+                    putObject.stackTrace << "${throwable.class}: $throwable.message".toString()
                     throwable.stackTrace.each { putObject.stackTrace << it.toString() }
                 }
 
-            } else if (!eventObject.throwableProxy && !exceptionsOnly) {
+            } else {
                 putObject = new ErrbuddyLogObject(type: ErrbuddyPutObject.Type.LOG, message: eventObject.formattedMessage, level: parseLevel(eventObject.level))
             }
 
