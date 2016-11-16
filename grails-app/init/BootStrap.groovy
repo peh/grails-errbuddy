@@ -9,7 +9,6 @@ class BootStrap {
 
     def init = { servletContext ->
         ErrbuddyLogAppender.instance.enable()
-        log.error("wattt????")
         errbuddyService.postDeployment("foo", "bar")
     }
     def destroy = {

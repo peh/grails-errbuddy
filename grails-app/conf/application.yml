@@ -9,7 +9,7 @@ grails:
         errbuddy:
           enabled: true
           apiKey: GARBAGE
-          exceptionsOnly: false
+          threshold: WARN
 info:
     app:
         name: '@info.app.name@'
