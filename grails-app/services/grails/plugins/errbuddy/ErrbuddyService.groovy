@@ -1,6 +1,7 @@
 package grails.plugins.errbuddy
 
 import com.google.gson.GsonBuilder
+import grails.core.GrailsApplication
 import grails.util.Environment
 import org.apache.http.Header
 import org.apache.http.client.config.RequestConfig
@@ -11,8 +12,10 @@ import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.impl.client.LaxRedirectStrategy
 import org.apache.http.message.BasicHeader
+import org.grails.web.servlet.mvc.GrailsWebRequest
+import org.grails.web.util.WebUtils
 import org.springframework.beans.factory.InitializingBean
-import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.http.HttpStatus
 
 import java.nio.charset.Charset
 
@@ -20,7 +23,7 @@ class ErrbuddyService implements InitializingBean {
 
     static transactional = false
 
-    def grailsApplication
+    GrailsApplication grailsApplication
 
     private static final String ERROR_PATH = '/api/error'
     private static final String DEPLOY_PATH = '/api/deployment'
@@ -30,6 +33,7 @@ class ErrbuddyService implements InitializingBean {
     private static final int MAX_WAIT_TIME = 10000
     private static final Charset CHARSET = Charset.forName("UTF-8")
     private static final GsonBuilder JSON_BUILDER = new GsonBuilder()
+    public static final String REQUEST_IDENTIFIER_KEY = "errbuddyIdentifier"
     private HttpClientBuilder clientBuilder
     private String apiKey
     private ignoredParams
@@ -37,7 +41,6 @@ class ErrbuddyService implements InitializingBean {
     String hostname = null
     private boolean addHostname = false
     private String hostnameSuffix = ''
-
 
     void measured(Closure c) {
         long start = System.currentTimeMillis()
@@ -58,16 +61,11 @@ class ErrbuddyService implements InitializingBean {
         put(new ErrbuddyLogObject(level: 'LOG', message: message))
     }
 
-    def put(ErrbuddyPutObject putObject, boolean skipRequestData = false) {
-        if (!enabled) {
-            return false
-        }
-
-        if (!skipRequestData) {
+    void put(ErrbuddyPutObject putObject) {
+        if (enabled) {
             fillWithRequestParams(putObject)
+            new SendThread(buildPost(ERROR_PATH, putObject.postBody), httpClient).start()
         }
-
-        new SendThread(buildPost(ERROR_PATH, putObject.postBody), httpClient).start()
     }
 
     void postDeployment(String version = null, String hostname = null) {
@@ -76,7 +74,7 @@ class ErrbuddyService implements InitializingBean {
         }
 
         if (!version)
-            version = grailsApplication.metadata['app.version'].toString()
+            version = grailsApplication.metadata.getApplicationVersion()
         if (!hostname)
             hostname = this.hostname
 
@@ -90,7 +88,7 @@ class ErrbuddyService implements InitializingBean {
     }
 
     void fillWithRequestParams(ErrbuddyPutObject object) {
-        def request = webRequest
+        GrailsWebRequest request = webRequest
         if (!request) {
             return
         }
@@ -111,12 +109,19 @@ class ErrbuddyService implements InitializingBean {
             }
         }
         object.hostname = hostname
+
+        // push the errbuddyIdentifier in the request so users can get it in there custom error controller
+        request.request."$REQUEST_IDENTIFIER_KEY" = object.identifier
     }
 
-    protected static getWebRequest() {
+    public getErrbuddyIdentifier(request) {
+        return request."$REQUEST_IDENTIFIER_KEY"
+    }
+
+    protected static GrailsWebRequest getWebRequest() {
         try {
-            return RequestContextHolder.currentRequestAttributes()
-        } catch (Exception ignore) {
+            return WebUtils.retrieveGrailsWebRequest()
+        } catch (ignore) {
             // Do nothing as we know this can fail...
         }
     }
@@ -164,11 +169,9 @@ class ErrbuddyService implements InitializingBean {
         void run() {
             try {
                 def response = client.execute(httpPost)
-                if (response.statusLine.statusCode == 200) {
-                    true
-                } else {
+                if (response.statusLine.statusCode != HttpStatus.OK.value()) {
                     if (Environment.developmentMode) {
-                        println("Sending Post failed. $response.statusLine.statusCode")
+                        println("Sending Post failed. $response.statusLine.statusCode -> $response.statusLine.reasonPhrase")
                     }
                 }
             } catch (Throwable t) {

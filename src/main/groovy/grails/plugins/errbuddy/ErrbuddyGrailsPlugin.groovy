@@ -15,7 +15,7 @@ class ErrbuddyGrailsPlugin extends Plugin {
     def issueManagement = [system: "GitHub", url: "https://github.com/peh/grails-errbuddy/issues"]
     def scm = [url: "https://github.com/peh/grails-errbuddy"]
     def pluginExcludes = [
-            "test/**",
+            "test/**"
     ]
 
     def doWithSpring = {

@@ -10,6 +10,8 @@ import grails.util.Holders
 import org.apache.commons.lang3.RandomStringUtils
 import org.slf4j.LoggerFactory
 
+import java.lang.reflect.InvocationTargetException
+
 class ErrbuddyLogAppender<E> extends AppenderBase<E> {
 
     GrailsApplication grailsApplication
@@ -70,21 +72,22 @@ class ErrbuddyLogAppender<E> extends AppenderBase<E> {
             ErrbuddyPutObject putObject
 
             if (eventObject.throwableProxy || eventObject.level.isGreaterOrEqual(Level.ERROR)) {
-
                 putObject = new ErrbuddyErrorObject(
                         type: ErrbuddyPutObject.Type.ERROR,
                         message: eventObject.formattedMessage,
                         level: parseLevel(eventObject.level),
                         identifier: RandomStringUtils.randomAlphanumeric(32)
                 )
-
                 if (eventObject.throwableProxy) {
+                    putObject.stackTrace = []
                     Throwable throwable = eventObject.throwableProxy.throwable
-                    throwable.metaClass.errbuddyIdentifier = putObject.identifier
-                    putObject.message = putObject.message ?: throwable.message
-                    putObject.exception = throwable.class.canonicalName
-                    putObject.stackTrace = new ArrayList(throwable.stackTrace.length + 1)
-                    putObject.stackTrace << "${throwable.class}: $throwable.message".toString()
+                    if (throwable instanceof InvocationTargetException) {
+                        throwable = throwable.targetException
+                        putObject.message = throwable.message
+                        putObject.exception = throwable.class.canonicalName
+                    } else {
+                        putObject.stackTrace << "${throwable.class}: $throwable.message".toString()
+                    }
                     throwable.stackTrace.each { putObject.stackTrace << it.toString() }
                 }
 
