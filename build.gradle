@@ -1,0 +1,80 @@
+buildscript {
+    ext {
+        grailsVersion = project.grailsVersion
+    }
+    repositories {
+        mavenLocal()
+        maven { url "https://repo.grails.org/grails/core" }
+    }
+    dependencies {
+        classpath "org.grails:grails-gradle-plugin:$grailsVersion"
+    }
+}
+
+version "2.2.0-SNAPSHOT"
+group "org.grails.plugins"
+
+apply plugin: "eclipse"
+apply plugin: "idea"
+apply plugin: "org.grails.grails-plugin"
+apply plugin: "org.grails.grails-plugin-publish"
+
+ext {
+    grailsVersion = project.grailsVersion
+    gradleWrapperVersion = project.gradleWrapperVersion
+}
+
+repositories {
+    mavenLocal()
+    maven { url "https://repo.grails.org/grails/core" }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.grails:grails-bom:$grailsVersion"
+    }
+    applyMavenExclusions false
+}
+
+dependencies {
+    profile "org.grails.profiles:plugin:3.1.4"
+
+    provided 'org.springframework.boot:spring-boot-starter-logging'
+    provided "org.springframework.boot:spring-boot-starter-actuator"
+    provided "org.springframework.boot:spring-boot-autoconfigure"
+    provided "org.springframework.boot:spring-boot-starter-tomcat"
+
+    provided "org.grails:grails-web-boot"
+    provided "org.grails:grails-dependencies"
+    provided 'javax.servlet:javax.servlet-api:3.1.0'
+    provided "org.grails:grails-plugin-services"
+    provided "org.grails:grails-plugin-domain-class"
+    provided "org.grails:grails-dependencies"
+
+    console "org.grails:grails-console"
+
+    compile 'org.apache.httpcomponents:httpclient:4.5'
+    compile 'org.apache.httpcomponents:httpcore:4.4.1'
+    compile 'org.apache.commons:commons-lang3:3.4'
+    compile 'com.google.code.gson:gson:2.6.2'
+
+    testCompile "org.grails:grails-plugin-testing"
+    testCompile 'com.stehno.ersatz:ersatz:1.7.0:safe@jar'
+
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = gradleWrapperVersion
+}
+grailsPublish {
+    user = System.getenv("BINTRAY_USER") ?: project.hasProperty("bintrayUser") ? project.bintrayUser : ''
+    key = System.getenv("BINTRAY_KEY") ?: project.hasProperty("bintrayKey") ? project.bintrayKey : ''
+    userOrg = 'errbuddy'
+    githubSlug = 'peh/grails-errbuddy'
+    license {
+        name = 'Apache-2.0'
+    }
+    title = "errbuddy"
+    desc = "Errbuddy Grails Client and LogAppender"
+    developers = [peh: "Philipp Eschenbach"]
+}

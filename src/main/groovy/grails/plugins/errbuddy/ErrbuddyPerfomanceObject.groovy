@@ -1,4 +1,4 @@
-package errbuddy
+package grails.plugins.errbuddy
 
 class ErrbuddyPerfomanceObject extends ErrbuddyPutObject{
 

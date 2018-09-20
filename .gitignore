@@ -1,14 +1,35 @@
-.classpath
-.project
-.settings
-/local
-/log
-/target
-/web-app/WEB-INF
+
+Thumbs.db
+.DS_Store
+.gradle
+build/
 .idea
 *.iml
+*.ipr
 *.iws
-plugin.xml
-*.log
+.project
+.settings
+.classpath
+.asscache
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Intellij
+.idea/
+*.iml
+*.iws
+
+# Mac
 .DS_Store
-grails-errbuddy-*.zip*
+.slcache
+# Maven
+log/
+target/
+
+# helpers
+/local/
+/data/
+.slcache

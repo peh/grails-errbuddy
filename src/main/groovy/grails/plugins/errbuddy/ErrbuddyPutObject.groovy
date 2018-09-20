@@ -1,4 +1,4 @@
-package errbuddy
+package grails.plugins.errbuddy
 
 abstract class ErrbuddyPutObject {
 
@@ -13,10 +13,8 @@ abstract class ErrbuddyPutObject {
     String path
     String identifier
 
-    def request
-
-    Map requestParameters
-    Map sessionParameters
+    Map<String, String> requestParameters
+    Map<String, String> sessionParameters
 
     protected abstract String getType()
 
@@ -38,7 +36,7 @@ abstract class ErrbuddyPutObject {
         ] + postBodyExtension
     }
 
-    public static enum Type {
+    static enum Type {
         ERROR,
         LOG,
         PERFORMANCE
