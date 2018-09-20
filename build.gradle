@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-version "2.1.0"
+version "2.2.0-SNAPSHOT"
 group "org.grails.plugins"
 
 apply plugin: "eclipse"
@@ -59,6 +59,8 @@ dependencies {
     compile 'com.google.code.gson:gson:2.6.2'
 
     testCompile "org.grails:grails-plugin-testing"
+    testCompile 'com.stehno.ersatz:ersatz:1.7.0:safe@jar'
+
 }
 
 task wrapper(type: Wrapper) {

@@ -3,6 +3,7 @@ package grails.plugins.errbuddy
 import com.google.gson.GsonBuilder
 import grails.core.GrailsApplication
 import grails.util.Environment
+import groovy.transform.CompileStatic
 import org.apache.http.Header
 import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.HttpPost
@@ -17,30 +18,30 @@ import org.grails.web.util.WebUtils
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.http.HttpStatus
 
+import javax.servlet.http.HttpServletRequest
 import java.nio.charset.Charset
 
+@CompileStatic
 class ErrbuddyService implements InitializingBean {
 
     static transactional = false
 
     GrailsApplication grailsApplication
 
+    public static final String REQUEST_IDENTIFIER_KEY = "errbuddyIdentifier"
+
     private static final String ERROR_PATH = '/api/error'
     private static final String DEPLOY_PATH = '/api/deployment'
-    private static final String DEFAULT_ERRBUDDY_URL = "https://errbuddy.net"
     private static final String AUTH_KEY_HEADER_NAME = "key"
     private static final Header CONTENT_TYPE_HEADER = new BasicHeader('Content-Type', 'application/json')
     private static final int MAX_WAIT_TIME = 10000
     private static final Charset CHARSET = Charset.forName("UTF-8")
     private static final GsonBuilder JSON_BUILDER = new GsonBuilder()
-    public static final String REQUEST_IDENTIFIER_KEY = "errbuddyIdentifier"
-    private HttpClientBuilder clientBuilder
-    private String apiKey
-    private ignoredParams
+
+    private static HttpClientBuilder clientBuilder
+    private List<String> ignoredParams
     private boolean enabled = false
     String hostname = null
-    private boolean addHostname = false
-    private String hostnameSuffix = ''
 
     void measured(Closure c) {
         long start = System.currentTimeMillis()
@@ -75,10 +76,8 @@ class ErrbuddyService implements InitializingBean {
 
         if (!version)
             version = grailsApplication.metadata.getApplicationVersion()
-        if (!hostname)
-            hostname = this.hostname
 
-        new SendThread(buildPost(DEPLOY_PATH, [hostname: hostname, version: version]), httpClient).start()
+        new SendThread(buildPost(DEPLOY_PATH, [hostname: hostname ?: this.hostname, version: version]), httpClient).start()
     }
 
     HttpPost buildPost(String target, Map body) {
@@ -96,26 +95,35 @@ class ErrbuddyService implements InitializingBean {
         object.controllerName = request.controllerName
         object.actionName = request.actionName
         object.path = "${request.request.requestURL}".replace(".dispatch", '')
+
         object.sessionParameters = [:]
-        request.session.attributeNames.each {
-            if (!(it in ignoredParams)) {
-                object.sessionParameters.put(it, request.session.getAttribute(it))
+
+        request.session.attributeNames.each { String k ->
+            if (!ignoredParams.contains(k)) {
+                object.sessionParameters.put(k, request.session.getAttribute(k).toString())
             }
         }
+
         object.requestParameters = [:]
+
         request.parameterMap.each { it ->
-            if (!(it.key in ignoredParams)) {
-                object.requestParameters << it
+            String k = it.key
+            if (!ignoredParams.contains(k)) {
+                object.requestParameters.put(k, it.value.toString())
             }
         }
         object.hostname = hostname
 
         // push the errbuddyIdentifier in the request so users can get it in there custom error controller
-        request.request."$REQUEST_IDENTIFIER_KEY" = object.identifier
+        request.request.setAttribute(REQUEST_IDENTIFIER_KEY, object.identifier)
     }
 
-    public getErrbuddyIdentifier(request) {
-        return request."$REQUEST_IDENTIFIER_KEY"
+    String getErrbuddyIdentifier(HttpServletRequest request) {
+        return request.getAttribute(REQUEST_IDENTIFIER_KEY)
+    }
+
+    String getShortLink(HttpServletRequest request) {
+        "$errbuddyUrl/s/${getErrbuddyIdentifier(request)}"
     }
 
     protected static GrailsWebRequest getWebRequest() {
@@ -127,32 +135,36 @@ class ErrbuddyService implements InitializingBean {
     }
 
     private getErrbuddyUrl() {
-        grailsApplication.config.grails.plugin.errbuddy.host ?: DEFAULT_ERRBUDDY_URL
+        grailsApplication.config.getProperty("grails.plugin.errbuddy.host")
     }
 
     private CloseableHttpClient getHttpClient() {
-        if (!clientBuilder) {
-            RequestConfig.Builder requestBuilder = RequestConfig.custom().setConnectTimeout(MAX_WAIT_TIME).setConnectionRequestTimeout(MAX_WAIT_TIME);
-            clientBuilder = HttpClients.custom().setDefaultHeaders([CONTENT_TYPE_HEADER, new BasicHeader(AUTH_KEY_HEADER_NAME, apiKey)]).setRedirectStrategy(new LaxRedirectStrategy()).setDefaultRequestConfig(requestBuilder.build())
-        }
         clientBuilder.build()
     }
 
     void afterPropertiesSet() {
-
-        def conf = grailsApplication.config.grails.plugin.errbuddy
-        enabled = conf.enabled as boolean
-        if (!enabled) {
+        if (!grailsApplication.config.getProperty("grails.plugin.errbuddy.enabled", Boolean)) {
             return
         }
 
-        apiKey = conf.apiKey
-        ignoredParams = grailsApplication.config.grails.plugin.errbuddy.params.exclude
-        hostnameSuffix = grailsApplication.config.grails.plugin.errbuddy.hostname.suffix
-        if (grailsApplication.config.grails.plugin.errbuddy.hostname.resolve)
-            hostname = "${InetAddress.getLocalHost().getHostName()}$hostnameSuffix"
-        else if (grailsApplication.config.grails.plugin.errbuddy.hostname.name)
-            hostname = "${grailsApplication.config.grails.plugin.errbuddy.hostname.name}"
+        enabled = true
+
+        ignoredParams = grailsApplication.config.getProperty("grails.plugin.errbuddy.params.exclude", List)
+
+        if (grailsApplication.config.getProperty("grails.plugin.errbuddy.hostname.resolve", Boolean)) {
+            String suffix = grailsApplication.config.getProperty("grails.plugin.errbuddy.hostname.suffix")
+            hostname = "${InetAddress.getLocalHost().getHostName()}$suffix"
+        } else if (grailsApplication.config.getProperty("grails.plugin.errbuddy.hostname.name")) {
+            hostname = "${grailsApplication.config.getProperty("grails.plugin.errbuddy.hostname.name")}"
+        }
+
+        String apiKey = grailsApplication.config.getProperty("grails.plugin.errbuddy.apiKey")
+        RequestConfig.Builder requestBuilder = RequestConfig.custom().setConnectTimeout(MAX_WAIT_TIME).setConnectionRequestTimeout(MAX_WAIT_TIME)
+        clientBuilder = HttpClients
+                .custom()
+                .setDefaultHeaders([CONTENT_TYPE_HEADER, new BasicHeader(AUTH_KEY_HEADER_NAME, apiKey)])
+                .setRedirectStrategy(new LaxRedirectStrategy())
+                .setDefaultRequestConfig(requestBuilder.build())
     }
 
     private class SendThread extends Thread {
@@ -160,7 +172,7 @@ class ErrbuddyService implements InitializingBean {
         private HttpPost httpPost
         private CloseableHttpClient client
 
-        public SendThread(HttpPost httpPost, CloseableHttpClient client) {
+        SendThread(HttpPost httpPost, CloseableHttpClient client) {
             this.httpPost = httpPost
             this.client = client
         }
