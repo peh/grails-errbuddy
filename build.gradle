@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-version "2.2.0-SNAPSHOT"
+version "2.2.0"
 group "org.grails.plugins"
 
 apply plugin: "eclipse"
@@ -67,8 +67,8 @@ task wrapper(type: Wrapper) {
     gradleVersion = gradleWrapperVersion
 }
 grailsPublish {
-    user = System.getenv("BINTRAY_USER") ?: project.hasProperty("bintrayUser") ? project.bintrayUser : ''
-    key = System.getenv("BINTRAY_KEY") ?: project.hasProperty("bintrayKey") ? project.bintrayKey : ''
+    user = bintrayUser ?: ''
+    key = bintrayKey ?: ''
     userOrg = 'errbuddy'
     githubSlug = 'peh/grails-errbuddy'
     license {
