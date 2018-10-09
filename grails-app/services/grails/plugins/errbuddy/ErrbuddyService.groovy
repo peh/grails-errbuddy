@@ -149,7 +149,7 @@ class ErrbuddyService implements InitializingBean {
 
         enabled = true
 
-        ignoredParams = grailsApplication.config.getProperty("grails.plugin.errbuddy.params.exclude", List)
+        ignoredParams = grailsApplication.config.getProperty("grails.plugin.errbuddy.params.exclude", List, [])
 
         if (grailsApplication.config.getProperty("grails.plugin.errbuddy.hostname.resolve", Boolean)) {
             String suffix = grailsApplication.config.getProperty("grails.plugin.errbuddy.hostname.suffix")
